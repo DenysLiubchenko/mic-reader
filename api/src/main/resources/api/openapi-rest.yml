@@ -1,0 +1,332 @@
+openapi: 3.0.1
+info:
+  title: Retail API
+  description: API for managing carts, products, and discounts in a retail system.
+  version: 0.0.1
+
+servers:
+  - url: 'http://localhost:8085'
+
+# TAGS
+# =======================================================================================================================
+tags:
+  - name: Cart
+    description: Endpoints related to cart operations, including creation, update, and product/discount management.
+  - name: Product
+    description: Endpoints for managing products in the system.
+  - name: Discount
+    description: Endpoints for managing discounts in the system.
+
+# PATHS
+# =======================================================================================================================
+paths:
+  /cart:
+    get:
+      tags:
+        - Cart
+      operationId: findAllCarts
+      parameters:
+        - $ref: '#/components/parameters/Pageable'
+      responses:
+        '200':
+          description: Page of carts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartPage'
+
+  /cart/{cartId}:
+    get:
+      tags:
+        - Cart
+      operationId: findCartById
+      parameters:
+        - $ref: '#/components/parameters/CartId'
+      responses:
+        '200':
+          description: Cart by id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+
+  /product:
+    get:
+      tags:
+        - Product
+      operationId: findAllProducts
+      parameters:
+        - $ref: '#/components/parameters/Pageable'
+      responses:
+        '200':
+          description: Page of products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductPage'
+
+
+  /discount:
+    get:
+      tags:
+        - Discount
+      operationId: findAllDiscounts
+      parameters:
+        - $ref: '#/components/parameters/Pageable'
+      responses:
+        '200':
+          description: Page of discounts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscountPage'
+
+# COMPONENTS
+# =======================================================================================================================
+components:
+  parameters:
+    CartId:
+      in: path
+      name: cartId
+      required: true
+      schema:
+        type: integer
+        format: int64
+        description: The unique identifier of the cart.
+        minimum: 1
+      example: 111
+    Pageable:
+      name: pageable
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/Pageable'
+
+  responses:
+    NotFoundResponse:
+      description: The requested resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorObject'
+          example:
+            status: 404
+            title: Not Found
+            detail: The requested resource was not found.
+
+    ConflictResponse:
+      description: The request could not be completed due to a conflict.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorObject'
+          example:
+            status: 409
+            title: Conflict
+            detail: The request has a conflict.
+
+    BadRequestResponse:
+      description: The request contains invalid data.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorObject'
+          example:
+            status: 400
+            title: Bad Request
+            detail: Invalid request. Please check the data.
+
+  schemas:
+    Pageable:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 0
+          default: 0
+        size:
+          type: integer
+          minimum: 1
+          default: 8
+        sort:
+          type: array
+          items:
+            type: string
+
+    AbstractPage:
+      type: object
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+          default: 0
+        totalPages:
+          type: integer
+          default: 0
+        first:
+          type: boolean
+        last:
+          type: boolean
+        number:
+          type: integer
+        numberOfElements:
+          type: integer
+        size:
+          type: integer
+        empty:
+          type: boolean
+        content:
+          type: array
+          items: { }
+
+    Cart:
+      title: Cart
+      description: Represents a shopping cart containing products and discounts.
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The unique identifier of the cart.
+          minimum: 1
+        products:
+          type: array
+          description: List of products in the cart.
+          nullable: false
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ProductItem'
+          default: [ ]
+        discounts:
+          type: array
+          description: List of discounts applied to the cart.
+          nullable: false
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/DiscountItem'
+          default: [ ]
+
+    ProductItem:
+      type: object
+      description: Represents a product item in the cart.
+      properties:
+        productId:
+          type: integer
+          format: int64
+          description: The unique identifier of the product.
+          nullable: false
+          minimum: 1
+        quantity:
+          type: integer
+          format: int32
+          description: The quantity of the product.
+          nullable: false
+          default: 1
+          minimum: 1
+      required:
+        - productId
+
+    DiscountItem:
+      type: string
+      description: A valid discount code to be applied to the cart.
+      nullable: false
+      minLength: 1
+      pattern: "^\\S+$"
+
+    CartPage:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/AbstractPage'
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/Cart'
+              description: List of carts
+
+    Discount:
+      type: object
+      description: .
+      properties:
+        code:
+          $ref: '#/components/schemas/DiscountItem'
+        due:
+          type: string
+          format: date-time
+          nullable: false
+          description: "ISO 8601 date-time with offset for code to expire. Must be in the future."
+      required:
+        - code
+        - due
+
+    DiscountPage:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/AbstractPage'
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/Discount'
+              description: List of discounts
+
+    Product:
+      type: object
+      description: Represents a product that can be added to a cart.
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The unique identifier of the product.
+          minimum: 1
+        name:
+          type: string
+          description: The name of the product.
+          pattern: '^(?!\s*$).+'
+          nullable: false
+          minLength: 1
+        cost:
+          type: number
+          format: bigDecimal
+          description: The price of the product.
+          nullable: false
+          minimum: 1
+      required:
+        - name
+        - cost
+
+    ProductPage:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/AbstractPage'
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/Product'
+              description: List of products
+
+    ErrorObject:
+      type: object
+      description: Error response containing details about an exception.
+      additionalProperties: false
+      properties:
+        status:
+          type: integer
+          description: HTTP status code.
+          minimum: 100
+          maximum: 599
+        title:
+          type: string
+          description: Short description of the error.
+          maxLength: 100
+        detail:
+          type: string
+          description: Detailed message explaining the error.
