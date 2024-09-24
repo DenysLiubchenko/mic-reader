@@ -26,6 +26,8 @@ paths:
         - Cart
       operationId: findAllCarts
       parameters:
+        - $ref: '#/components/parameters/ProductNameSearchQuery'
+        - $ref: '#/components/parameters/TotalCostRange'
         - $ref: '#/components/parameters/Pageable'
       responses:
         '200':
@@ -34,25 +36,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CartPage'
-
-  /cart/{cartId}:
-    get:
-      tags:
-        - Cart
-      operationId: findCartById
-      parameters:
-        - $ref: '#/components/parameters/CartId'
-      responses:
-        '200':
-          description: Cart by id
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Cart'
-        '400':
-          $ref: '#/components/responses/BadRequestResponse'
-        '404':
-          $ref: '#/components/responses/NotFoundResponse'
 
   /product:
     get:
@@ -89,6 +72,30 @@ paths:
 # =======================================================================================================================
 components:
   parameters:
+    ProductNameSearchQuery:
+      in: query
+      name: productNameSearchQuery
+      required: false
+      schema:
+        type: string
+        minLength: 4
+
+    TotalCostRange:
+      in: query
+      name: totalCostRange
+      required: false
+      schema:
+        type: object
+        properties:
+          from:
+            type: number
+            format: bigDecimal
+            minimum: 0
+          to:
+            type: number
+            format: bigDecimal
+            minimum: 0
+
     CartId:
       in: path
       name: cartId
@@ -99,6 +106,7 @@ components:
         description: The unique identifier of the cart.
         minimum: 1
       example: 111
+
     Pageable:
       name: pageable
       in: query
@@ -117,17 +125,6 @@ components:
             status: 404
             title: Not Found
             detail: The requested resource was not found.
-
-    ConflictResponse:
-      description: The request could not be completed due to a conflict.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorObject'
-          example:
-            status: 409
-            title: Conflict
-            detail: The request has a conflict.
 
     BadRequestResponse:
       description: The request contains invalid data.

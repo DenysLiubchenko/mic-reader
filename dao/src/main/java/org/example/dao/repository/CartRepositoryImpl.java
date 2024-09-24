@@ -3,19 +3,27 @@ package org.example.dao.repository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dao.adapters.CartJpaAdapter;
+import org.example.dao.adapters.CartSearchJpaAdapter;
 import org.example.dao.adapters.DiscountJpaAdapter;
 import org.example.dao.adapters.ProductJpaAdapter;
 import org.example.dao.entity.CartEntity;
 import org.example.dao.entity.ProductItemEntity;
 import org.example.dao.mapper.CartEntityMapper;
+import org.example.dao.mapper.CartPageMapper;
+import org.example.dao.mapper.PageableMapper;
 import org.example.dao.mapper.ProductItemEntityMapper;
 import org.example.domain.dto.CartDto;
+import org.example.domain.dto.PageDto;
+import org.example.domain.dto.PageableDto;
 import org.example.domain.dto.ProductItemDto;
 import org.example.domain.exception.NotFoundException;
 import org.example.domain.repository.CartRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
@@ -28,9 +36,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CartRepositoryImpl implements CartRepository {
     private final CartJpaAdapter cartJpaAdapter;
+    private final CartSearchJpaAdapter cartSearchJpaAdapter;
     private final ProductJpaAdapter productJpaAdapter;
     private final DiscountJpaAdapter discountJpaAdapter;
+    private final PageableMapper pageableMapper;
     private final CartEntityMapper cartEntityMapper;
+    private final CartPageMapper cartPageMapper;
     private final ProductItemEntityMapper productItemEntityMapper;
 
     @Override
@@ -72,6 +83,13 @@ public class CartRepositoryImpl implements CartRepository {
         cart.removeProduct(productItem);
         cartJpaAdapter.flush();
         return cartEntityMapper.toDto(cart);
+    }
+
+    @Override
+    public PageDto<CartDto> findAllBy(String productNameSearchQuery, BigDecimal totalCostFrom, BigDecimal totalCostTo, PageableDto pageableDto) {
+        PageRequest pageRequest = pageableMapper.fromDto(pageableDto);
+        Page<CartEntity> entityPage = cartSearchJpaAdapter.search(productNameSearchQuery, totalCostFrom, totalCostTo, pageRequest);
+        return cartPageMapper.toDto(entityPage);
     }
 
     @Override
@@ -147,8 +165,10 @@ public class CartRepositoryImpl implements CartRepository {
     }
 
     private CartEntity getCartById(Long cartId) {
-        return cartJpaAdapter.findByIdFetchDiscountsAndProductIds(cartId)
+        CartEntity cartEntity = cartJpaAdapter.findByIdFetchDiscounts(cartId)
                 .orElseThrow(() -> new NotFoundException("Cart with id: %s is not found".formatted(cartId)));
+        cartJpaAdapter.findByIdFetchProducts(cartId).get();
+        return cartEntity;
     }
 
     private void updateProducts(CartEntity existingCart, Set<ProductItemEntity> newProducts) {

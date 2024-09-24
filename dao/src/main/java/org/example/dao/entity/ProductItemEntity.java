@@ -34,6 +34,11 @@ public class ProductItemEntity {
     @JoinColumn(name = "cart_id")
     private CartEntity cart;
 
+    @MapsId("productId")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    private ProductEntity product;
+
     @Column
     private Integer quantity;
 }
