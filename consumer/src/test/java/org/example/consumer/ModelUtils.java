@@ -1,6 +1,5 @@
 package org.example.consumer;
 
-import org.example.ProductItem;
 import org.example.delta.DeleteCartDeltaEvent;
 import org.example.delta.DiscountCartDeltaEvent;
 import org.example.delta.ModifyProductItemCartDeltaEvent;
@@ -67,12 +66,19 @@ public class ModelUtils {
                 .setId(1)
                 .setReason(reason)
                 .setDiscounts(List.of("CODE_2000"))
-                .setProducts(List.of(getProductItem()))
+                .setProducts(List.of(getFactProductItem()))
                 .build();
     }
 
-    public static ProductItem getProductItem() {
-        return ProductItem.newBuilder()
+    public static org.example.fact.ProductItem getFactProductItem() {
+        return org.example.fact.ProductItem.newBuilder()
+                .setProductId(1L)
+                .setQuantity(1)
+                .build();
+    }
+
+    public static org.example.delta.ProductItem getDeltaProductItem() {
+        return org.example.delta.ProductItem.newBuilder()
                 .setProductId(1L)
                 .setQuantity(1)
                 .build();
@@ -87,7 +93,7 @@ public class ModelUtils {
     public static ModifyProductItemCartDeltaEvent getModifyProductItemCartDeltaEvent(String reason) {
         return ModifyProductItemCartDeltaEvent.newBuilder()
                 .setId(1)
-                .setProducts(List.of(getProductItem()))
+                .setProducts(List.of(getDeltaProductItem()))
                 .setReason(reason)
                 .build();
     }

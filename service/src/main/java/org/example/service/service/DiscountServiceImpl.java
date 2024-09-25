@@ -10,14 +10,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class DiscountServiceImpl implements DiscountService {
     public final DiscountRepository discountRepository;
 
     @Override
+    @Transactional
     public void save(DiscountDto discount) {
-
+        discountRepository.save(discount);
     }
 
     @Override

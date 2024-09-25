@@ -10,14 +10,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
     public final ProductRepository productRepository;
 
     @Override
+    @Transactional
     public void save(ProductDto product) {
-
+        productRepository.save(product);
     }
 
     @Override

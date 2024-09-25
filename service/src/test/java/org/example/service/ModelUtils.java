@@ -2,12 +2,16 @@ package org.example.service;
 
 import org.example.domain.dto.CartDto;
 import org.example.domain.dto.DiscountDto;
+import org.example.domain.dto.PageDto;
+import org.example.domain.dto.PageableDto;
 import org.example.domain.dto.ProductDto;
 import org.example.domain.dto.ProductItemDto;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 public class ModelUtils {
@@ -33,6 +37,26 @@ public class ModelUtils {
                 .id(1L)
                 .discounts(Set.of("CODE_2000","CODE_2001","CODE_2002"))
                 .products(Set.of(getProductItemDto(1L,1), getProductItemDto(2L,2), getProductItemDto(3L,3)))
+                .build();
+    }
+
+    public static PageableDto getPageableDto() {
+        return PageableDto.builder()
+                .page(0)
+                .size(8)
+                .sort(Collections.emptyList())
+                .build();
+    }
+
+    public static <T> PageDto<T> pageDtoOf(T... elements) {
+        return PageDto.<T>builder()
+                .content(List.of(elements))
+                .empty(false)
+                .first(true)
+                .last(false)
+                .number(0)
+                .totalElements(10L)
+                .numberOfElements(elements.length)
                 .build();
     }
 }

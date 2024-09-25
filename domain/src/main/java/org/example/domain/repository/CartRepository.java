@@ -6,23 +6,24 @@ import org.example.domain.dto.PageableDto;
 import org.example.domain.dto.ProductItemDto;
 
 import java.math.BigDecimal;
+import java.util.Set;
 
 public interface CartRepository {
     CartDto saveCart(CartDto cartDto);
 
     CartDto updateCart(CartDto cartDto);
 
-    CartDto addProductToCart(Long cartId, ProductItemDto productItemDto);
+    void addProductToCart(Long cartId, Set<ProductItemDto> productItemDtos);
 
-    CartDto addDiscountToCart(Long cartId, String discountCode);
+    void addDiscountToCart(Long cartId, Set<String> discountCodes);
 
-    CartDto deleteCart(Long cartId);
+    void deleteCart(Long cartId);
 
     CartDto getCartDtoById(Long cartId);
 
-    CartDto removeDiscountFromCart(Long cartId, String code);
+    void removeDiscountFromCart(Long cartId, Set<String> codes);
 
-    CartDto removeProductFromCart(Long cartId, Long productId);
+    void removeProductFromCart(Long cartId, Set<Long> productIds);
 
     PageDto<CartDto> findAllBy(String productNameSearchQuery, BigDecimal totalCostFrom, BigDecimal totalCostTo, PageableDto pageableDto);
 }

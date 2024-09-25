@@ -4,8 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dao.adapters.CartJpaAdapter;
 import org.example.dao.adapters.CartSearchJpaAdapter;
-import org.example.dao.adapters.DiscountJpaAdapter;
-import org.example.dao.adapters.ProductJpaAdapter;
 import org.example.dao.entity.CartEntity;
 import org.example.dao.entity.ProductItemEntity;
 import org.example.dao.mapper.CartEntityMapper;
@@ -37,52 +35,40 @@ import java.util.stream.Collectors;
 public class CartRepositoryImpl implements CartRepository {
     private final CartJpaAdapter cartJpaAdapter;
     private final CartSearchJpaAdapter cartSearchJpaAdapter;
-    private final ProductJpaAdapter productJpaAdapter;
-    private final DiscountJpaAdapter discountJpaAdapter;
     private final PageableMapper pageableMapper;
     private final CartEntityMapper cartEntityMapper;
     private final CartPageMapper cartPageMapper;
     private final ProductItemEntityMapper productItemEntityMapper;
 
     @Override
-    public CartDto addProductToCart(Long cartId, ProductItemDto productItemDto) {
-        validateIfProductExistsById(productItemDto.getProductId());
+    public void addProductToCart(Long cartId, Set<ProductItemDto> productItemDtos) {
+        CartEntity cart = cartJpaAdapter.findByIdFetchProducts(cartId)
+                .orElseThrow(() -> new NotFoundException("Cart with id: %s is not found".formatted(cartId)));
+        for (ProductItemDto productItemDto : productItemDtos) {
+            Optional<ProductItemEntity> optionalProductItem = cart.getProducts().stream()
+                    .filter(product -> product.getId().getProductId().equals(productItemDto.getProductId()))
+                    .findFirst();
 
-        CartEntity cart = getCartById(cartId);
-
-        Optional<ProductItemEntity> optionalProductItem = cart.getProducts().stream()
-                .filter(product -> product.getId().getProductId().equals(productItemDto.getProductId()))
-                .findFirst();
-
-        if (optionalProductItem.isPresent()) {
-            // Update product quantity
-            optionalProductItem.get().setQuantity(productItemDto.getQuantity());
-            log.info("Updated product item quantity {}", productItemDto);
-        } else {
-            // Add new product
-            ProductItemEntity productItem = productItemEntityMapper.fromDto(productItemDto);
-            cart.addProduct(productItem);
-            log.info("Added product item {}", productItem);
+            if (optionalProductItem.isPresent()) {
+                // Update product quantity
+                optionalProductItem.get().setQuantity(productItemDto.getQuantity());
+                log.info("Updated product item quantity {}", productItemDto);
+            } else {
+                // Add new product
+                ProductItemEntity productItem = productItemEntityMapper.fromDto(productItemDto);
+                cart.addProduct(productItem);
+                log.info("Added product item {}", productItem);
+            }
         }
-
         cartJpaAdapter.flush();
-
-        return cartEntityMapper.toDto(cart);
     }
 
     @Override
-    public CartDto removeProductFromCart(Long cartId, Long productId) {
-        validateIfProductExistsById(productId);
-
-        CartEntity cart = getCartById(cartId);
-        ProductItemEntity productItem = cart.getProducts().stream()
-                .filter(product -> product.getId().getProductId().equals(productId))
-                .findFirst()
-                .orElseThrow(() ->
-                        new NotFoundException("Product with id: %s not found in a cart with id: %s".formatted(productId, cartId)));
-        cart.removeProduct(productItem);
+    public void removeProductFromCart(Long cartId, Set<Long> productIds) {
+        CartEntity cart = cartJpaAdapter.findByIdFetchProducts(cartId)
+                .orElseThrow(() -> new NotFoundException("Cart with id: %s is not found".formatted(cartId)));
+        cart.getProducts().removeIf(productId -> productIds.contains(productId.getId().getProductId()));
         cartJpaAdapter.flush();
-        return cartEntityMapper.toDto(cart);
     }
 
     @Override
@@ -93,34 +79,28 @@ public class CartRepositoryImpl implements CartRepository {
     }
 
     @Override
-    public CartDto addDiscountToCart(Long cartId, String discountCode) {
-        validateDiscountExistsByCode(discountCode);
+    public void addDiscountToCart(Long cartId, Set<String> discountCode) {
+        CartEntity cart = cartJpaAdapter.findByIdFetchDiscounts(cartId)
+                .orElseThrow(() -> new NotFoundException("Cart with id: %s is not found".formatted(cartId)));
 
-        CartEntity cart = getCartById(cartId);
-
-        cart.addDiscount(discountCode);
+        cart.getDiscounts().addAll(discountCode);
 
         cartJpaAdapter.flush();
         log.info("Added discount code {} to the cart {}", discountCode, cartId);
-        return cartEntityMapper.toDto(cart);
     }
 
     @Override
-    public CartDto removeDiscountFromCart(Long cartId, String code) {
-        CartEntity cart = getCartById(cartId);
-        validateDiscountExistsByCode(code);
-        cart.removeDiscount(code);
+    public void removeDiscountFromCart(Long cartId, Set<String> code) {
+        CartEntity cart = cartJpaAdapter.findByIdFetchDiscounts(cartId)
+                .orElseThrow(() -> new NotFoundException("Cart with id: %s is not found".formatted(cartId)));
+        cart.getDiscounts().removeAll(code);
 
         cartJpaAdapter.flush();
         log.info("Removed discount code {} from the cart {}", code, cartId);
-        return cartEntityMapper.toDto(cart);
     }
 
     @Override
     public CartDto saveCart(CartDto cartDto) {
-        cartDto.getProducts().forEach(product -> validateIfProductExistsById(product.getProductId()));
-        cartDto.getDiscounts().forEach(this::validateDiscountExistsByCode);
-
         CartEntity cartEntity = cartEntityMapper.fromDto(cartDto);
         cartEntity.getProducts().forEach(product -> product.setCart(cartEntity));
 
@@ -137,7 +117,6 @@ public class CartRepositoryImpl implements CartRepository {
 
         existingCart.getDiscounts().removeIf(discount -> !cartEntity.getDiscounts().contains(discount));
         cartEntity.getDiscounts().removeIf(discount -> existingCart.getDiscounts().contains(discount));
-        cartEntity.getDiscounts().forEach(this::validateDiscountExistsByCode);
         existingCart.getDiscounts().addAll(cartEntity.getDiscounts());
 
         updateProducts(existingCart, cartEntity.getProducts());
@@ -148,14 +127,11 @@ public class CartRepositoryImpl implements CartRepository {
     }
 
     @Override
-    public CartDto deleteCart(Long cartId) {
-        CartDto cartDto = getCartDtoById(cartId);
-
+    public void deleteCart(Long cartId) {
         cartJpaAdapter.deleteById(cartId);
 
         cartJpaAdapter.flush();
-        log.info("Deleted cart entity: {}", cartDto);
-        return cartDto;
+        log.info("Deleted cart entity by id: {}", cartId);
     }
 
     @Override
@@ -192,21 +168,8 @@ public class CartRepositoryImpl implements CartRepository {
         }
 
         newProductMap.values().forEach(newProduct -> {
-            validateIfProductExistsById(newProduct.getId().getProductId());
             newProduct.setCart(existingCart);
             existingCart.getProducts().add(newProduct);
         });
-    }
-
-    private void validateIfProductExistsById(Long productId) {
-        if (!productJpaAdapter.existsById(productId)) {
-            throw new NotFoundException("Product with id: %s is not found".formatted(productId));
-        }
-    }
-
-    private void validateDiscountExistsByCode(String discountCode) {
-        if (!discountJpaAdapter.existsById(discountCode)) {
-            throw new NotFoundException("Discount with code: %s is not found".formatted(discountCode));
-        }
     }
 }

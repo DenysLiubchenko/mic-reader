@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -20,44 +21,44 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional
-    public void addDiscountToCartWithId(Long cartId, String code) {
-
+    public void addDiscountToCartWithId(Long cartId, Set<String> codes) {
+        cartRepository.addDiscountToCart(cartId, codes);
     }
 
     @Override
     @Transactional
-    public void addProductToCartWithId(Long cartId, ProductItemDto productItem) {
-
+    public void addProductToCartWithId(Long cartId, Set<ProductItemDto> productItems) {
+        cartRepository.addProductToCart(cartId, productItems);
     }
 
     @Override
     @Transactional
     public void deleteById(Long cartId) {
-
+        cartRepository.deleteCart(cartId);
     }
 
     @Override
     @Transactional
     public void saveCart(CartDto cart) {
-
+        cartRepository.saveCart(cart);
     }
 
     @Override
     @Transactional
     public void updateCart(CartDto cart) {
-
+        cartRepository.updateCart(cart);
     }
 
     @Override
     @Transactional
-    public void removeDiscountFromCartWithId(Long cartId, String code) {
-
+    public void removeDiscountFromCartWithId(Long cartId, Set<String> codes) {
+        cartRepository.removeDiscountFromCart(cartId, codes);
     }
 
     @Override
     @Transactional
-    public void removeProductFromCartWithId(Long cartId, Long productId) {
-
+    public void removeProductFromCartWithId(Long cartId, Set<Long> productIds) {
+        cartRepository.removeProductFromCart(cartId, productIds);
     }
 
     @Override

@@ -2,26 +2,32 @@ package org.example.dao.repository;
 
 import org.example.dao.ModelUtils;
 import org.example.dao.adapters.CartJpaAdapter;
-import org.example.dao.adapters.DiscountJpaAdapter;
-import org.example.dao.adapters.ProductJpaAdapter;
+import org.example.dao.adapters.CartSearchJpaAdapter;
 import org.example.dao.entity.CartEntity;
 import org.example.dao.entity.ProductItemEntity;
 import org.example.dao.entity.ProductItemId;
 import org.example.dao.mapper.CartEntityMapper;
+import org.example.dao.mapper.CartPageMapper;
+import org.example.dao.mapper.PageableMapper;
 import org.example.dao.mapper.ProductItemEntityMapper;
 import org.example.domain.dto.CartDto;
+import org.example.domain.dto.PageDto;
+import org.example.domain.dto.PageableDto;
 import org.example.domain.dto.ProductItemDto;
-import org.example.domain.exception.NotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
+import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -32,16 +38,19 @@ class CartRepositoryTest {
     private CartJpaAdapter cartJpaAdapter;
 
     @Mock
-    private ProductJpaAdapter productJpaAdapter;
-
-    @Mock
-    private DiscountJpaAdapter discountJpaAdapter;
-
-    @Mock
     private CartEntityMapper cartEntityMapper;
 
     @Mock
     private ProductItemEntityMapper productItemEntityMapper;
+
+    @Mock
+    private CartSearchJpaAdapter cartSearchJpaAdapter;
+
+    @Mock
+    private PageableMapper pageableMapper;
+
+    @Mock
+    private CartPageMapper cartPageMapper;
 
     @InjectMocks
     private CartRepositoryImpl cartRepository;
@@ -54,21 +63,14 @@ class CartRepositoryTest {
     void addProductToCartTest() {
         // Given
         Long cartId = cartDto.getId();
-        given(productJpaAdapter.existsById(productItemDto.getProductId())).willReturn(true);
-        given(cartJpaAdapter.findByIdFetchDiscounts(cartId)).willReturn(Optional.of(cartEntity));
         given(cartJpaAdapter.findByIdFetchProducts(cartId)).willReturn(Optional.of(cartEntity));
-        given(cartEntityMapper.toDto(cartEntity)).willReturn(cartDto);
 
         // When
-        CartDto result = cartRepository.addProductToCart(cartId, productItemDto);
+        cartRepository.addProductToCart(cartId, Set.of(productItemDto));
 
         // Then
-        then(productJpaAdapter).should().existsById(productItemDto.getProductId());
-        then(cartJpaAdapter).should().findByIdFetchDiscounts(cartId);
         then(cartJpaAdapter).should().findByIdFetchProducts(cartId);
         then(cartJpaAdapter).should().flush();
-        then(cartEntityMapper).should().toDto(cartEntity);
-        assertThat(result).isEqualTo(cartDto);
     }
 
     @Test
@@ -79,36 +81,15 @@ class CartRepositoryTest {
         ProductItemEntity productItemEntity = ModelUtils.getProductItemEntity();
         productItemEntity.getId().setProductId(3L);
         Long cartId = cartDto.getId();
-        given(productJpaAdapter.existsById(productItemDto.getProductId())).willReturn(true);
         given(productItemEntityMapper.fromDto(productItemDto)).willReturn(productItemEntity);
-        given(cartJpaAdapter.findByIdFetchDiscounts(cartId)).willReturn(Optional.of(cartEntity));
         given(cartJpaAdapter.findByIdFetchProducts(cartId)).willReturn(Optional.of(cartEntity));
-        given(cartEntityMapper.toDto(cartEntity)).willReturn(cartDto);
 
         // When
-        CartDto result = cartRepository.addProductToCart(cartId, productItemDto);
+        cartRepository.addProductToCart(cartId, Set.of(productItemDto));
 
         // Then
-        then(productJpaAdapter).should().existsById(productItemDto.getProductId());
-        then(cartJpaAdapter).should().findByIdFetchDiscounts(cartId);
         then(cartJpaAdapter).should().findByIdFetchProducts(cartId);
         then(cartJpaAdapter).should().flush();
-        then(cartEntityMapper).should().toDto(cartEntity);
-        assertThat(result).isEqualTo(cartDto);
-    }
-
-    @Test
-    void addProductToCart_whenProductNotFound_throwsNotFoundExceptionTest() {
-        // Given
-        Long cartId = cartDto.getId();
-        given(productJpaAdapter.existsById(productItemDto.getProductId())).willReturn(false);
-
-        // When
-        assertThatThrownBy(() -> cartRepository.addProductToCart(cartId, productItemDto))
-                .isInstanceOf(NotFoundException.class);
-
-        // Then
-        then(productJpaAdapter).should().existsById(productItemDto.getProductId());
     }
 
     @Test
@@ -116,35 +97,13 @@ class CartRepositoryTest {
         // Given
         Long cartId = cartDto.getId();
         Long productId = 1L;
-        given(productJpaAdapter.existsById(productId)).willReturn(true);
-        given(cartJpaAdapter.findByIdFetchDiscounts(cartId)).willReturn(Optional.of(cartEntity));
         given(cartJpaAdapter.findByIdFetchProducts(cartId)).willReturn(Optional.of(cartEntity));
-        given(cartEntityMapper.toDto(cartEntity)).willReturn(cartDto);
-
         // When
-        CartDto result = cartRepository.removeProductFromCart(cartId, productId);
+        cartRepository.removeProductFromCart(cartId, Set.of(productId));
 
         // Then
-        then(productJpaAdapter).should().existsById(productId);
-        then(cartJpaAdapter).should().findByIdFetchDiscounts(cartId);
         then(cartJpaAdapter).should().findByIdFetchProducts(cartId);
         then(cartJpaAdapter).should().flush();
-        then(cartEntityMapper).should().toDto(cartEntity);
-        assertThat(result).isEqualTo(cartDto);
-    }
-
-    @Test
-    void removeProductFromCart_whenProductNotFound_throwsNotFoundExceptionTest() {
-        // Given
-        Long productId = 1L;
-        given(productJpaAdapter.existsById(productId)).willReturn(false);
-
-        // When
-        assertThatThrownBy(() -> cartRepository.removeProductFromCart(cartDto.getId(), productId))
-                .isInstanceOf(NotFoundException.class);
-
-        // Then
-        then(productJpaAdapter).should().existsById(productId);
     }
 
     @Test
@@ -152,36 +111,14 @@ class CartRepositoryTest {
         // Given
         Long cartId = cartDto.getId();
         String discountCode = "DISCOUNT1";
-        given(discountJpaAdapter.existsById(discountCode)).willReturn(true);
         given(cartJpaAdapter.findByIdFetchDiscounts(cartId)).willReturn(Optional.of(cartEntity));
-        given(cartJpaAdapter.findByIdFetchProducts(cartId)).willReturn(Optional.of(cartEntity));
-        given(cartEntityMapper.toDto(cartEntity)).willReturn(cartDto);
 
         // When
-        CartDto result = cartRepository.addDiscountToCart(cartId, discountCode);
+        cartRepository.addDiscountToCart(cartId, Set.of(discountCode));
 
         // Then
-        then(discountJpaAdapter).should().existsById(discountCode);
         then(cartJpaAdapter).should().findByIdFetchDiscounts(cartId);
-        then(cartJpaAdapter).should().findByIdFetchProducts(cartId);
         then(cartJpaAdapter).should().flush();
-        then(cartEntityMapper).should().toDto(cartEntity);
-        assertThat(result).isEqualTo(cartDto);
-    }
-
-    @Test
-    void addDiscountToCart_whenDiscountNotFound_throwsNotFoundExceptionTest() {
-        // Given
-        Long cartId = cartDto.getId();
-        String discountCode = "DISCOUNT1";
-        given(discountJpaAdapter.existsById(discountCode)).willReturn(false);
-
-        // When
-        assertThatThrownBy(() -> cartRepository.addDiscountToCart(cartId, discountCode))
-                .isInstanceOf(NotFoundException.class);
-
-        // Then
-        then(discountJpaAdapter).should().existsById(discountCode);
     }
 
     @Test
@@ -190,47 +127,19 @@ class CartRepositoryTest {
         Long cartId = cartDto.getId();
         String discountCode = "DISCOUNT1";
         given(cartJpaAdapter.findByIdFetchDiscounts(cartId)).willReturn(Optional.of(cartEntity));
-        given(cartJpaAdapter.findByIdFetchProducts(cartId)).willReturn(Optional.of(cartEntity));
-        given(discountJpaAdapter.existsById(discountCode)).willReturn(true);
-        given(cartEntityMapper.toDto(cartEntity)).willReturn(cartDto);
 
         // When
-        CartDto result = cartRepository.removeDiscountFromCart(cartId, discountCode);
+        cartRepository.removeDiscountFromCart(cartId, Set.of(discountCode));
 
         // Then
         then(cartJpaAdapter).should().findByIdFetchDiscounts(cartId);
-        then(cartJpaAdapter).should().findByIdFetchProducts(cartId);
-        then(discountJpaAdapter).should().existsById(discountCode);
         then(cartJpaAdapter).should().flush();
-        then(cartEntityMapper).should().toDto(cartEntity);
-        assertThat(result).isEqualTo(cartDto);
-    }
-
-    @Test
-    void removeDiscountFromCart_whenDiscountNotFound_throwsNotFoundExceptionTest() {
-        // Given
-        Long cartId = cartDto.getId();
-        String discountCode = "DISCOUNT1";
-        given(cartJpaAdapter.findByIdFetchDiscounts(cartId)).willReturn(Optional.of(cartEntity));
-        given(cartJpaAdapter.findByIdFetchProducts(cartId)).willReturn(Optional.of(cartEntity));
-        given(discountJpaAdapter.existsById(discountCode)).willReturn(false);
-
-        // When
-        assertThatThrownBy(() -> cartRepository.removeDiscountFromCart(cartId, discountCode))
-                .isInstanceOf(NotFoundException.class);
-
-        // Then
-        then(cartJpaAdapter).should().findByIdFetchDiscounts(cartId);
-        then(cartJpaAdapter).should().findByIdFetchProducts(cartId);
-        then(discountJpaAdapter).should().existsById(discountCode);
     }
 
     @Test
     void saveCartTest() {
         // Given
         given(cartEntityMapper.fromDto(cartDto)).willReturn(cartEntity);
-        cartDto.getProducts().forEach(product -> given(productJpaAdapter.existsById(product.getProductId())).willReturn(true));
-        cartDto.getDiscounts().forEach(discount -> given(discountJpaAdapter.existsById(discount)).willReturn(true));
         given(cartJpaAdapter.save(cartEntity)).willReturn(cartEntity);
         given(cartEntityMapper.toDto(cartEntity)).willReturn(cartDto);
 
@@ -238,8 +147,6 @@ class CartRepositoryTest {
         CartDto result = cartRepository.saveCart(cartDto);
 
         // Then
-        cartDto.getProducts().forEach(product -> then(productJpaAdapter).should().existsById(product.getProductId()));
-        cartDto.getDiscounts().forEach(discount -> then(discountJpaAdapter).should().existsById(discount));
         then(cartEntityMapper).should().fromDto(cartDto);
         then(cartJpaAdapter).should().save(cartEntity);
         then(cartJpaAdapter).should().flush();
@@ -260,7 +167,6 @@ class CartRepositoryTest {
         Long cartId = cartEntity.getId();
 
         given(cartEntityMapper.fromDto(cartDto)).willReturn(newCartEntity);
-        given(productJpaAdapter.existsById(productItem.getId().getProductId())).willReturn(true);
         given(cartJpaAdapter.findByIdFetchDiscounts(cartId)).willReturn(Optional.of(cartEntity));
         given(cartJpaAdapter.findByIdFetchProducts(cartId)).willReturn(Optional.of(cartEntity));
         given(cartEntityMapper.toDto(newCartEntity)).willReturn(cartDto);
@@ -268,7 +174,6 @@ class CartRepositoryTest {
         CartDto result = cartRepository.updateCart(cartDto);
 
         then(cartEntityMapper).should().fromDto(cartDto);
-        then(productJpaAdapter).should().existsById(productItem.getId().getProductId());
         then(cartJpaAdapter).should().findByIdFetchDiscounts(cartId);
         then(cartJpaAdapter).should().findByIdFetchProducts(cartId);
         then(cartEntityMapper).should().toDto(newCartEntity);
@@ -279,19 +184,13 @@ class CartRepositoryTest {
     void deleteCartTest() {
         // Given
         Long cartId = cartDto.getId();
-        given(cartJpaAdapter.findByIdFetchDiscounts(cartId)).willReturn(Optional.of(cartEntity));
-        given(cartJpaAdapter.findByIdFetchProducts(cartId)).willReturn(Optional.of(cartEntity));
-        given(cartEntityMapper.toDto(cartEntity)).willReturn(cartDto);
 
         // When
-        CartDto result = cartRepository.deleteCart(cartId);
+        cartRepository.deleteCart(cartId);
 
         // Then
-        then(cartJpaAdapter).should().findByIdFetchDiscounts(cartId);
-        then(cartJpaAdapter).should().findByIdFetchProducts(cartId);
         then(cartJpaAdapter).should().deleteById(cartId);
         then(cartJpaAdapter).should().flush();
-        assertThat(result).isEqualTo(cartDto);
     }
 
     @Test
@@ -310,6 +209,28 @@ class CartRepositoryTest {
         then(cartJpaAdapter).should().findByIdFetchProducts(cartId);
         then(cartEntityMapper).should().toDto(cartEntity);
         assertThat(result).isEqualTo(cartDto);
+    }
+
+    @Test
+    void findAll() {
+        String productNameSearchQuery = "query";
+        BigDecimal totalCostFrom = BigDecimal.ONE;
+        BigDecimal totalCostTo = BigDecimal.valueOf(1111);
+        PageableDto pageableDto = ModelUtils.getPageableDto();
+        PageRequest pageRequest = PageRequest.of(1, 10);
+        PageImpl<CartEntity> entityPage = new PageImpl<>(Collections.singletonList(cartEntity));
+        PageDto<CartDto> cartDtoPageDto = ModelUtils.pageDtoOf(cartDto);
+
+        given(pageableMapper.fromDto(pageableDto)).willReturn(pageRequest);
+        given(cartSearchJpaAdapter.search(productNameSearchQuery, totalCostFrom, totalCostTo, pageRequest)).willReturn(entityPage);
+        given(cartPageMapper.toDto(entityPage)).willReturn(cartDtoPageDto);
+
+        PageDto<CartDto> result = cartRepository.findAllBy(productNameSearchQuery, totalCostFrom, totalCostTo, pageableDto);
+
+        then(pageableMapper).should().fromDto(pageableDto);
+        then(cartSearchJpaAdapter).should().search(productNameSearchQuery, totalCostFrom, totalCostTo, pageRequest);
+        then(cartPageMapper).should().toDto(entityPage);
+        assertThat(result).isEqualTo(cartDtoPageDto);
     }
 }
 

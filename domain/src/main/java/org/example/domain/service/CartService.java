@@ -6,11 +6,12 @@ import org.example.domain.dto.PageableDto;
 import org.example.domain.dto.ProductItemDto;
 
 import java.math.BigDecimal;
+import java.util.Set;
 
 public interface CartService {
-    void addDiscountToCartWithId(Long cartId, String code);
+    void addDiscountToCartWithId(Long cartId, Set<String> codes);
 
-    void addProductToCartWithId(Long cartId, ProductItemDto productItem);
+    void addProductToCartWithId(Long cartId, Set<ProductItemDto> productItems);
 
     void deleteById(Long cartId);
 
@@ -18,9 +19,9 @@ public interface CartService {
 
     void updateCart(CartDto cart);
 
-    void removeDiscountFromCartWithId(Long cartId, String code);
+    void removeDiscountFromCartWithId(Long cartId, Set<String> codes);
 
-    void removeProductFromCartWithId(Long cartId, Long productId);
+    void removeProductFromCartWithId(Long cartId, Set<Long> productIds);
 
     PageDto<CartDto> findAll(String productNameSearchQuery, BigDecimal totalCostFrom, BigDecimal totalCostTo, PageableDto pageableDto);
 }

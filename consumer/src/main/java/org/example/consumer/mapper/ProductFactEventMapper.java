@@ -7,4 +7,5 @@ import org.mapstruct.Mapper;
 @Mapper(componentModel = "spring")
 public interface ProductFactEventMapper {
     ProductFactEvent toEvent(ProductDto productDto, String reason);
+    ProductDto toDto(ProductFactEvent productFactEvent);
 }

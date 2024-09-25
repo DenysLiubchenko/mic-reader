@@ -7,12 +7,15 @@ import org.example.dao.entity.ProductItemEntity;
 import org.example.dao.entity.ProductItemId;
 import org.example.domain.dto.CartDto;
 import org.example.domain.dto.DiscountDto;
+import org.example.domain.dto.PageDto;
+import org.example.domain.dto.PageableDto;
 import org.example.domain.dto.ProductDto;
 import org.example.domain.dto.ProductItemDto;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -72,6 +75,26 @@ public class ModelUtils {
                 .id(1L)
                 .cost(BigDecimal.TEN)
                 .name("productName")
+                .build();
+    }
+
+    public static PageableDto getPageableDto() {
+        return PageableDto.builder()
+                .page(0)
+                .size(8)
+                .sort(Collections.emptyList())
+                .build();
+    }
+
+    public static <T> PageDto<T> pageDtoOf(T... elements) {
+        return PageDto.<T>builder()
+                .content(List.of(elements))
+                .empty(false)
+                .first(true)
+                .last(false)
+                .number(0)
+                .totalElements(10L)
+                .numberOfElements(elements.length)
                 .build();
     }
 }
