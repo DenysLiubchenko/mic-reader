@@ -1,7 +1,7 @@
 package org.example.consumer.mapper;
 
-import org.example.fact.CartFactEvent;
 import org.example.domain.dto.CartDto;
+import org.example.fact.CartFactEvent;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")

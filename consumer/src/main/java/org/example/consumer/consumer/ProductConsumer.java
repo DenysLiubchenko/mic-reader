@@ -18,7 +18,7 @@ public class ProductConsumer {
     private final ProductService productService;
     private final ProductFactEventMapper productFactEventMapper;
 
-    @KafkaListener(topics = "${kafka.topics.fact.product}", groupId = "product-fact-group")
+    @KafkaListener(topics = "${kafka.topics.fact.product}", groupId = "product-fact-group", autoStartup = "#{@isReadingTypeFact}")
     public void consumeFact(@Payload final ProductFactEvent event) {
         log.info("Received fact: {} message", event);
 
@@ -29,7 +29,7 @@ public class ProductConsumer {
         }
     }
 
-    @KafkaListener(topics = "${kafka.topics.delta.product}", groupId = "product-delta-group")
+    @KafkaListener(topics = "${kafka.topics.delta.product}", groupId = "product-delta-group", autoStartup = "#{@isReadingTypeDelta}")
     public void consumeDelta(@Payload final SpecificRecord message) {
         log.info("Received delta: {} message", message);
 

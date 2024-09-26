@@ -20,6 +20,7 @@
         <module>service</module>
         <module>domain</module>
         <module>dao</module>
+        <module>log</module>
         <module>boot</module>
         <module>consumer</module>
     </modules>

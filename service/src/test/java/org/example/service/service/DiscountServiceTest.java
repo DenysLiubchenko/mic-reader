@@ -1,8 +1,10 @@
 package org.example.service.service;
 
+import org.example.domain.constant.LogReason;
 import org.example.domain.dto.DiscountDto;
 import org.example.domain.dto.PageDto;
 import org.example.domain.dto.PageableDto;
+import org.example.domain.historyRepository.DiscountHistoryRepository;
 import org.example.domain.repository.DiscountRepository;
 import org.example.service.ModelUtils;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,9 @@ public class DiscountServiceTest {
     @Mock
     private DiscountRepository discountRepository;
 
+    @Mock
+    private DiscountHistoryRepository discountHistoryRepository;
+
     @InjectMocks
     private DiscountServiceImpl discountService;
 
@@ -28,11 +33,15 @@ public class DiscountServiceTest {
 
     @Test
     void saveDiscountTest() {
+        // Given
+        given(discountRepository.save(discountDto)).willReturn(discountDto);
+
         // When
         discountService.save(discountDto);
 
         // Then
         then(discountRepository).should().save(discountDto);
+        then(discountHistoryRepository).should().save(discountDto, LogReason.CREATE);
     }
 
     @Test

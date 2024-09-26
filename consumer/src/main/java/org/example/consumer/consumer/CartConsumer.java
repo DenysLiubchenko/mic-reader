@@ -28,7 +28,7 @@ public class CartConsumer {
     private final CartFactEventMapper cartFactEventMapper;
     private final CartDeltaEventMapper cartDeltaEventMapper;
 
-    @KafkaListener(topics = "${kafka.topics.fact.cart}", groupId = "cart-fact-group")
+    @KafkaListener(topics = "${kafka.topics.fact.cart}", groupId = "cart-fact-group", autoStartup = "#{@isReadingTypeFact}")
     public void consumeFact(@Payload final CartFactEvent event) {
         log.info("Received fact: {} message", event);
 
@@ -40,7 +40,7 @@ public class CartConsumer {
         }
     }
 
-    @KafkaListener(topics = "${kafka.topics.delta.cart}", groupId = "cart-delta-group")
+    @KafkaListener(topics = "${kafka.topics.delta.cart}", groupId = "cart-delta-group", autoStartup = "#{@isReadingTypeDelta}")
     public void consumeDelta(@Payload final SpecificRecord message) {
         log.info("Received delta: {} message", message);
 

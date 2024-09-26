@@ -18,7 +18,7 @@ public class DiscountConsumer {
     private final DiscountService discountService;
     private final DiscountFactEventMapper discountFactEventMapper;
 
-    @KafkaListener(topics = "${kafka.topics.fact.discount}", groupId = "discount-fact-group")
+    @KafkaListener(topics = "${kafka.topics.fact.discount}", groupId = "discount-fact-group", autoStartup = "#{@isReadingTypeFact}")
     public void consumeFact(@Payload final DiscountFactEvent event) {
         log.info("Received fact: {} message", event);
 
@@ -29,7 +29,7 @@ public class DiscountConsumer {
         }
     }
 
-    @KafkaListener(topics = "${kafka.topics.delta.discount}", groupId = "discount-delta-group")
+    @KafkaListener(topics = "${kafka.topics.delta.discount}", groupId = "discount-delta-group", autoStartup = "#{@isReadingTypeDelta}")
     public void consumeDelta(@Payload final SpecificRecord message) {
         log.info("Received delta: {} message", message);
 

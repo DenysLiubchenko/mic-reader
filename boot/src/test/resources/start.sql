@@ -1,12 +1,12 @@
 create table carts
 (
-    id bigserial,
+    id bigint,
     constraint pk_carts primary key (id)
 );
 
 create table products
 (
-    id   bigserial,
+    id   bigint,
     name varchar(100)   not null,
     cost decimal(10, 2) not null,
     constraint pk_products primary key (id),
