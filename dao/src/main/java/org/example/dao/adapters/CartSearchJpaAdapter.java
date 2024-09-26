@@ -6,6 +6,7 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Root;
 import org.example.dao.entity.CartEntity;
 import org.example.dao.entity.ProductEntity;
@@ -38,30 +39,27 @@ public class CartSearchJpaAdapter {
     }
 
     public Page<CartEntity> search(String productNameSearchQuery, BigDecimal totalCostFrom, BigDecimal totalCostTo, Pageable pageable) {
-        List<Long> cartIdsWithProductByName = productJpaAdapter.findAllCartIdsWithProductByName(productNameSearchQuery);
-
-        Long totalCount = getTotalCount(totalCostFrom, totalCostTo, cartIdsWithProductByName);
-        if (totalCount == 0) {
-            return Page.empty();
-        }
-
         CriteriaQuery<CartEntity> cq = cb.createQuery(CartEntity.class);
-        Root<ProductItemEntity> productItemRoot = cq.from(ProductItemEntity.class);
+        Root<CartEntity> root = cq.from(CartEntity.class);
 
         // Join with the products table
-        Join<ProductItemEntity, ProductEntity> productJoin = productItemRoot.join("product");
-        Join<ProductItemEntity, CartEntity> cartJoin = productItemRoot.join("cart");
+        Join<CartEntity, ProductItemEntity> pij = root.join("products", JoinType.LEFT);
+        Join<ProductItemEntity, ProductEntity> productJoin = pij.join("product", JoinType.LEFT);
 
-        cq.select(productItemRoot.get("cart"));
+        // Select
+        cq.select(root);
 
-        cq.where(productItemRoot.get("cart").get("id").in(cartIdsWithProductByName));
-        cq.groupBy(productItemRoot.get("cart").get("id"), cartJoin.get("id"));
+        // Where
+        if (productNameSearchQuery != null) {
+            List<Long> cartIdsWithProductByName = productJpaAdapter.findAllCartIdsWithProductByName(productNameSearchQuery);
+            cq.where(pij.get("cart").get("id").in(cartIdsWithProductByName));
+        }
 
-        Expression<BigDecimal> totalCartCost = cb.sum(cb.prod(productJoin.get("cost"), productItemRoot.get("quantity")));
-        var minProductName = cb.min(productJoin.get("name"));
-        var maxProductName = cb.max(productJoin.get("name"));
+        // Group by
+        cq.groupBy(pij.get("cart").get("id"), root.get("id"));
 
-        // Having SUM of total_cart_cost between totalFrom and totalTo
+        // Having
+        Expression<BigDecimal> totalCartCost = cb.sum(cb.prod(productJoin.get("cost"), pij.get("quantity")));
         if (totalCostFrom != null && totalCostTo != null) {
             cq.having(cb.between(totalCartCost, totalCostFrom, totalCostTo));
         } else if (totalCostFrom != null) {
@@ -70,7 +68,9 @@ public class CartSearchJpaAdapter {
             cq.having(cb.lessThan(totalCartCost, totalCostTo));
         }
 
-        // Set the order by clause
+        // Order by
+        var minProductName = cb.min(productJoin.get("name"));
+        var maxProductName = cb.max(productJoin.get("name"));
         Sort pageableSort = pageable.getSort();
         Optional<Sort.Order> optionalOrder = pageableSort.stream().filter(o -> o.getProperty().equals("product.name")).findFirst();
         if (optionalOrder.isPresent()) {
@@ -82,7 +82,12 @@ public class CartSearchJpaAdapter {
             }
         }
 
-        // Execute query
+        // Count
+        Long totalCount = getTotalCount(cq);
+        if (totalCount == 0) {
+            return Page.empty();
+        }
+
         TypedQuery<CartEntity> query = em.createQuery(cq);
 
         // Pagination
@@ -92,37 +97,15 @@ public class CartSearchJpaAdapter {
         List<CartEntity> resultList = query.getResultList();
         List<Long> cartIds = resultList.stream().map(CartEntity::getId).toList();
 
+        // Fetch data
         cartJpaAdapter.findAllByIdsFetchDiscounts(cartIds);
         cartJpaAdapter.findAllByIdsFetchProducts(cartIds);
 
         return new PageImpl<>(resultList, pageable, totalCount);
     }
 
-    private Long getTotalCount(BigDecimal totalCostFrom, BigDecimal totalCostTo, List<Long> cartIdsWithProductByName) {
-        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
-        Root<ProductItemEntity> productItemRoot = cq.from(ProductItemEntity.class);
-
-        // Join with the products table
-        Join<ProductItemEntity, ProductEntity> productJoin = productItemRoot.join("product");
-
-        cq.select(cb.count(productItemRoot.get("cart")));
-
-        cq.where(productItemRoot.get("cart").get("id").in(cartIdsWithProductByName));
-        cq.groupBy(productItemRoot.get("cart").get("id"));
-
-        Expression<BigDecimal> totalCartCost = cb.sum(cb.prod(productJoin.get("cost"), productItemRoot.get("quantity")));
-
-        // Having SUM of total_cart_cost between totalFrom and totalTo
-        if (totalCostFrom != null && totalCostTo != null) {
-            cq.having(cb.between(totalCartCost, totalCostFrom, totalCostTo));
-        } else if (totalCostFrom != null) {
-            cq.having(cb.greaterThan(totalCartCost, totalCostFrom));
-        } else if (totalCostTo != null) {
-            cq.having(cb.lessThan(totalCartCost, totalCostTo));
-        }
-
-        // Execute query
-        CriteriaQuery<Long> countQuery = ((JpaCriteriaQuery<Long>) cq).createCountQuery();
+    private Long getTotalCount(CriteriaQuery<CartEntity> cq) {
+        CriteriaQuery<Long> countQuery = ((JpaCriteriaQuery<CartEntity>) cq).createCountQuery();
         TypedQuery<Long> query = em.createQuery(countQuery);
         return query.getSingleResult();
     }
