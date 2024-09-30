@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dao.adapters.CartJpaAdapter;
 import org.example.dao.adapters.CartSearchJpaAdapter;
+import org.example.dao.adapters.ProductJpaAdapter;
 import org.example.dao.entity.CartEntity;
+import org.example.dao.entity.ProductEntity;
 import org.example.dao.entity.ProductItemEntity;
 import org.example.dao.mapper.CartEntityMapper;
 import org.example.dao.mapper.CartPageMapper;
@@ -39,6 +41,7 @@ public class CartRepositoryImpl implements CartRepository {
     private final CartEntityMapper cartEntityMapper;
     private final CartPageMapper cartPageMapper;
     private final ProductItemEntityMapper productItemEntityMapper;
+    private final ProductJpaAdapter productJpaAdapter;
 
     @Override
     public void addProductToCart(Long cartId, Set<ProductItemDto> productItemDtos) {
@@ -56,6 +59,7 @@ public class CartRepositoryImpl implements CartRepository {
             } else {
                 // Add new product
                 ProductItemEntity productItem = productItemEntityMapper.fromDto(productItemDto);
+                productItem.setProduct(productJpaAdapter.getReferenceById(productItemDto.getProductId()));
                 cart.addProduct(productItem);
                 log.info("Added product item {}", productItem);
             }
@@ -102,8 +106,11 @@ public class CartRepositoryImpl implements CartRepository {
     @Override
     public CartDto saveCart(CartDto cartDto) {
         CartEntity cartEntity = cartEntityMapper.fromDto(cartDto);
-        cartEntity.getProducts().forEach(product -> product.setCart(cartEntity));
-
+        for (ProductItemEntity product : cartEntity.getProducts()) {
+            ProductEntity referenceById = productJpaAdapter.getReferenceById(product.getId().getProductId());
+            product.setCart(cartEntity);
+            product.setProduct(referenceById);
+        }
         CartEntity savedCartEntity = cartJpaAdapter.save(cartEntity);
         cartJpaAdapter.flush();
         log.info("Saved cart entity: {}", savedCartEntity);

@@ -3,7 +3,9 @@ package org.example.dao.repository;
 import org.example.dao.ModelUtils;
 import org.example.dao.adapters.CartJpaAdapter;
 import org.example.dao.adapters.CartSearchJpaAdapter;
+import org.example.dao.adapters.ProductJpaAdapter;
 import org.example.dao.entity.CartEntity;
+import org.example.dao.entity.ProductEntity;
 import org.example.dao.entity.ProductItemEntity;
 import org.example.dao.entity.ProductItemId;
 import org.example.dao.mapper.CartEntityMapper;
@@ -52,6 +54,9 @@ class CartRepositoryTest {
     @Mock
     private CartPageMapper cartPageMapper;
 
+    @Mock
+    private ProductJpaAdapter productJpaAdapter;
+
     @InjectMocks
     private CartRepositoryImpl cartRepository;
 
@@ -76,6 +81,7 @@ class CartRepositoryTest {
     @Test
     void addProductToCart_withNewProductTest() {
         // Given
+        ProductEntity productEntity = ModelUtils.getProductEntity();
         ProductItemDto productItemDto = ModelUtils.getProductItemDto();
         productItemDto.setProductId(3L);
         ProductItemEntity productItemEntity = ModelUtils.getProductItemEntity();
@@ -83,12 +89,14 @@ class CartRepositoryTest {
         Long cartId = cartDto.getId();
         given(productItemEntityMapper.fromDto(productItemDto)).willReturn(productItemEntity);
         given(cartJpaAdapter.findByIdFetchProducts(cartId)).willReturn(Optional.of(cartEntity));
+        given(productJpaAdapter.getReferenceById(3L)).willReturn(productEntity);
 
         // When
         cartRepository.addProductToCart(cartId, Set.of(productItemDto));
 
         // Then
         then(cartJpaAdapter).should().findByIdFetchProducts(cartId);
+        then(productJpaAdapter).should().getReferenceById(3L);
         then(cartJpaAdapter).should().flush();
     }
 
@@ -139,9 +147,11 @@ class CartRepositoryTest {
     @Test
     void saveCartTest() {
         // Given
+        ProductEntity productEntity = ModelUtils.getProductEntity();
         given(cartEntityMapper.fromDto(cartDto)).willReturn(cartEntity);
         given(cartJpaAdapter.save(cartEntity)).willReturn(cartEntity);
         given(cartEntityMapper.toDto(cartEntity)).willReturn(cartDto);
+        given(productJpaAdapter.getReferenceById(1L)).willReturn(productEntity);
 
         // When
         CartDto result = cartRepository.saveCart(cartDto);
@@ -151,6 +161,7 @@ class CartRepositoryTest {
         then(cartJpaAdapter).should().save(cartEntity);
         then(cartJpaAdapter).should().flush();
         then(cartEntityMapper).should().toDto(cartEntity);
+        then(productJpaAdapter).should().getReferenceById(1L);
         assertThat(result).isEqualTo(cartDto);
     }
 

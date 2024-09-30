@@ -1,7 +1,11 @@
 INSERT INTO carts (id)
 VALUES (50),
        (51),
-       (52);
+       (52),
+       (53),
+       (54),
+       (55),
+       (56);
 
 INSERT INTO products (id, name, cost)
 VALUES (1, 'Laptop', 999.99),
@@ -16,7 +20,7 @@ INSERT INTO product_items (cart_id, product_id, quantity)
 VALUES (50, 1, 1),
        (51, 2, 1),
        (52, 2, 1),
-       (52, 3, 2);
+       (56, 1, 2);
 
 INSERT INTO carts_discounts (cart_id, discount_code)
 VALUES (50, 'SUMMER21'),
