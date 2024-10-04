@@ -83,6 +83,12 @@ public class CartRepositoryImpl implements CartRepository {
     }
 
     @Override
+    public boolean existsById(Long id) {
+
+        return cartJpaAdapter.existsById(id);
+    }
+
+    @Override
     public void addDiscountToCart(Long cartId, Set<String> discountCode) {
         CartEntity cart = cartJpaAdapter.findByIdFetchDiscounts(cartId)
                 .orElseThrow(() -> new NotFoundException("Cart with id: %s is not found".formatted(cartId)));

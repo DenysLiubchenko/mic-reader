@@ -39,4 +39,9 @@ public class DiscountRepositoryImpl implements DiscountRepository {
         Page<DiscountEntity> discountEntities = discountJpaAdapter.findAll(pageRequest);
         return discountPageMapper.toDto(discountEntities);
     }
+
+    @Override
+    public boolean existsByCode(String code) {
+        return discountJpaAdapter.existsById(code);
+    }
 }

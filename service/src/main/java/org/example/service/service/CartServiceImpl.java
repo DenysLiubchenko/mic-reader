@@ -6,6 +6,7 @@ import org.example.domain.dto.CartDto;
 import org.example.domain.dto.PageDto;
 import org.example.domain.dto.PageableDto;
 import org.example.domain.dto.ProductItemDto;
+import org.example.domain.exception.ConflictException;
 import org.example.domain.historyRepository.CartHistoryRepository;
 import org.example.domain.repository.CartRepository;
 import org.example.domain.service.CartService;
@@ -41,6 +42,9 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public void deleteById(Long cartId) {
+        if (!cartRepository.existsById(cartId)) {
+            throw new ConflictException("Cart with id: %s already deleted".formatted(cartId));
+        }
         CartDto cartDto = cartRepository.getCartDtoById(cartId);
         cartRepository.deleteCart(cartId);
         cartHistoryRepository.save(cartDto, LogReason.DELETE);
@@ -49,6 +53,9 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public void saveCart(CartDto cart) {
+        if (cartRepository.existsById(cart.getId())) {
+            throw new ConflictException("Cart with id: %s already exists".formatted(cart.getId()));
+        }
         CartDto cartDto = cartRepository.saveCart(cart);
         cartHistoryRepository.save(cartDto, LogReason.CREATE);
     }

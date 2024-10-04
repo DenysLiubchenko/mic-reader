@@ -26,4 +26,6 @@ public interface CartRepository {
     void removeProductFromCart(Long cartId, Set<Long> productIds);
 
     PageDto<CartDto> findAllBy(String productNameSearchQuery, BigDecimal totalCostFrom, BigDecimal totalCostTo, PageableDto pageableDto);
+
+    boolean existsById(Long id);
 }

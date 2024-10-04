@@ -5,6 +5,7 @@ import org.example.domain.constant.LogReason;
 import org.example.domain.dto.DiscountDto;
 import org.example.domain.dto.PageDto;
 import org.example.domain.dto.PageableDto;
+import org.example.domain.exception.ConflictException;
 import org.example.domain.historyRepository.DiscountHistoryRepository;
 import org.example.domain.repository.DiscountRepository;
 import org.example.domain.service.DiscountService;
@@ -21,6 +22,9 @@ public class DiscountServiceImpl implements DiscountService {
     @Override
     @Transactional
     public void save(DiscountDto discount) {
+        if (discountRepository.existsByCode(discount.getCode())) {
+            throw new ConflictException("Discount with code %s already exists".formatted(discount.getCode()));
+        }
         DiscountDto discountDto = discountRepository.save(discount);
         discountHistoryRepository.save(discountDto, LogReason.CREATE);
     }

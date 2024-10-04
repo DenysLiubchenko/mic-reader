@@ -39,4 +39,9 @@ public class ProductRepositoryImpl implements ProductRepository {
         Page<ProductEntity> page = productJpaAdapter.findAll(pageRequest);
         return productPageMapper.toDto(page);
     }
+
+    @Override
+    public boolean existsById(Long id) {
+        return productJpaAdapter.existsById(id);
+    }
 }

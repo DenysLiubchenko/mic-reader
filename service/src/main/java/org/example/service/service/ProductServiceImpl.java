@@ -5,6 +5,7 @@ import org.example.domain.constant.LogReason;
 import org.example.domain.dto.PageDto;
 import org.example.domain.dto.PageableDto;
 import org.example.domain.dto.ProductDto;
+import org.example.domain.exception.ConflictException;
 import org.example.domain.historyRepository.ProductHistoryRepository;
 import org.example.domain.repository.ProductRepository;
 import org.example.domain.service.ProductService;
@@ -21,6 +22,9 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public void save(ProductDto product) {
+        if (productRepository.existsById(product.getId())) {
+            throw new ConflictException("Product with id: %s already exists".formatted(product.getId()));
+        }
         ProductDto productDto = productRepository.save(product);
         productHistoryRepository.save(productDto, LogReason.CREATE);
     }

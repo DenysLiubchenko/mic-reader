@@ -8,4 +8,6 @@ public interface DiscountRepository {
     DiscountDto save(DiscountDto discountDto);
 
     PageDto<DiscountDto> findAll(PageableDto pageableDto);
+
+    boolean existsByCode(String code);
 }

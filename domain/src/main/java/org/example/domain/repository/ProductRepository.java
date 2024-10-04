@@ -8,4 +8,6 @@ public interface ProductRepository {
     ProductDto save(ProductDto productDto);
 
     PageDto<ProductDto> findAll(PageableDto pageableDto);
+
+    boolean existsById(Long id);
 }

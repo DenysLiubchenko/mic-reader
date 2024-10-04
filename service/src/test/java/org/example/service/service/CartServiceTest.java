@@ -6,6 +6,7 @@ import org.example.domain.dto.CartDto;
 import org.example.domain.dto.PageDto;
 import org.example.domain.dto.PageableDto;
 import org.example.domain.dto.ProductItemDto;
+import org.example.domain.exception.ConflictException;
 import org.example.domain.historyRepository.CartHistoryRepository;
 import org.example.domain.repository.CartRepository;
 import org.example.service.ModelUtils;
@@ -19,6 +20,7 @@ import java.math.BigDecimal;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -71,28 +73,56 @@ public class CartServiceTest {
     @Test
     void deleteByIdTest() {
         // Given
+        given(cartRepository.existsById(cartDto.getId())).willReturn(true);
         given(cartRepository.getCartDtoById(cartId)).willReturn(cartDto);
 
         // When
         cartService.deleteById(cartId);
 
         // Then
+        then(cartRepository).should().existsById(cartDto.getId());
         then(cartRepository).should().getCartDtoById(cartId);
         then(cartRepository).should().deleteCart(cartId);
         then(cartHistoryRepository).should().save(cartDto, LogReason.DELETE);
     }
 
     @Test
+    void deleteById_WhenEventDuplicated_ThrowsConflictExceptionTest() {
+        // Given
+        given(cartRepository.existsById(cartDto.getId())).willReturn(false);
+
+        // When
+        assertThatThrownBy(()->cartService.deleteById(cartDto.getId())).isInstanceOf(ConflictException.class);
+
+        // Then
+        then(cartRepository).should().existsById(cartDto.getId());
+    }
+
+    @Test
     void saveCartTest() {
         // Given
+        given(cartRepository.existsById(cartDto.getId())).willReturn(false);
         given(cartRepository.saveCart(cartDto)).willReturn(cartDto);
 
         // When
         cartService.saveCart(cartDto);
 
         // Then
+        then(cartRepository).should().existsById(cartDto.getId());
         then(cartRepository).should().saveCart(cartDto);
         then(cartHistoryRepository).should().save(cartDto, LogReason.CREATE);
+    }
+
+    @Test
+    void saveCart_WhenEventDuplicated_ThrowsConflictExceptionTest() {
+        // Given
+        given(cartRepository.existsById(cartDto.getId())).willReturn(true);
+
+        // When
+        assertThatThrownBy(()->cartService.saveCart(cartDto)).isInstanceOf(ConflictException.class);
+
+        // Then
+        then(cartRepository).should().existsById(cartDto.getId());
     }
 
     @Test

@@ -4,6 +4,7 @@ import org.example.domain.constant.LogReason;
 import org.example.domain.dto.PageDto;
 import org.example.domain.dto.PageableDto;
 import org.example.domain.dto.ProductDto;
+import org.example.domain.exception.ConflictException;
 import org.example.domain.historyRepository.ProductHistoryRepository;
 import org.example.domain.repository.ProductRepository;
 import org.example.service.ModelUtils;
@@ -14,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -35,13 +37,27 @@ public class ProductServiceTest {
     void saveProductTest() {
         //Given
         given(productRepository.save(productDto)).willReturn(productDto);
+        given(productRepository.existsById(productDto.getId())).willReturn(false);
 
         // When
         productService.save(productDto);
 
         // Then
         then(productRepository).should().save(productDto);
+        then(productRepository).should().existsById(productDto.getId());
         then(productHistoryRepository).should().save(productDto, LogReason.CREATE);
+    }
+
+    @Test
+    void saveProduct_WhenEventDuplicated_ThrowsConflictExceptionTest() {
+        //Given
+        given(productRepository.existsById(productDto.getId())).willReturn(true);
+
+        // When
+        assertThatThrownBy(()->productService.save(productDto)).isInstanceOf(ConflictException.class);
+
+        // Then
+        then(productRepository).should().existsById(productDto.getId());
     }
 
     @Test
